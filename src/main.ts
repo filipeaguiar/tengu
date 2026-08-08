@@ -109,12 +109,18 @@ const state: AppState = {
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('App root not found');
 
+let toastTimer: number | undefined;
+let reconnectTimer: number | undefined;
+
 boot();
 
 function boot() {
   setupGlobalHandlers();
   render();
   void connect();
+  reconnectTimer = window.setInterval(() => {
+    if (!state.connected && !state.loading) void connect({ silent: true });
+  }, 15000);
 }
 
 function setupGlobalHandlers() {
@@ -124,7 +130,7 @@ function setupGlobalHandlers() {
   app.addEventListener('change', onChange);
   window.addEventListener('beforeinstallprompt', (event) => {
     event.preventDefault();
-    state.toast = 'App instalável pronto.';
+    setToast('App instalável pronto.');
     render();
   });
 
@@ -210,7 +216,7 @@ function onSubmit(event: SubmitEvent) {
       const raw = String(data.get('serverUrl') ?? '');
       const normalized = normalizeServerUrl(raw);
       if (!normalized) {
-        state.toast = 'Informe um endereço válido.';
+        setToast('Informe um endereço válido.');
         render();
         return;
       }
@@ -228,7 +234,7 @@ function onSubmit(event: SubmitEvent) {
       const soundIds = Array.from(state.sceneDraft.soundIds);
 
       if (!name) {
-        state.toast = 'Dê um nome para a cena.';
+        setToast('Dê um nome para a cena.');
         render();
         return;
       }
@@ -244,7 +250,7 @@ function onSubmit(event: SubmitEvent) {
       state.scenes = [scene, ...state.scenes];
       persistScenes();
       state.sceneDraft = { name: '', playlistId: '', playlistVolume: 1, soundIds: new Set<string>(), note: '' };
-      state.toast = 'Cena criada.';
+      setToast('Cena criada.');
       render();
       break;
     }
@@ -300,7 +306,7 @@ function onChange(event: Event) {
 function runAction<T>(promise: Promise<T>) {
   promise.catch((error) => {
     state.error = error instanceof Error ? error.message : 'Falha na ação.';
-    state.toast = '';
+    setToast('');
     render(false);
   });
 }
@@ -314,9 +320,12 @@ function render(scrollTop = true) {
           <h1>Tengu</h1>
           <p class="muted">PWA instalável para playlists, soundboards e cenas locais.</p>
         </div>
-        <div class="status ${state.connected ? 'ok' : 'warn'}">
-          <span class="dot"></span>
-          ${state.connected ? 'Conectado' : 'Desconectado'}
+        <div class="header-status">
+          <div class="status ${state.loading ? 'connecting' : state.connected ? 'ok' : 'warn'}">
+            <span class="dot"></span>
+            ${state.loading ? 'Conectando...' : state.connected ? 'Conectado' : 'Desconectado'}
+          </div>
+          ${state.error ? `<p class="status-message error">${escapeHtml(state.error)}</p>` : state.connected ? `<p class="status-message ok">Conectado ao Kenku.</p>` : ''}
         </div>
       </header>
 
@@ -327,8 +336,8 @@ function render(scrollTop = true) {
             <input data-field="serverUrl" name="serverUrl" value="${escapeHtml(state.serverUrl)}" placeholder="http://192.168.1.10:3333/v1" />
           </label>
           <div class="row">
-            <button type="submit">Salvar e conectar</button>
-            <button type="button" data-action="refresh">Atualizar</button>
+            <button type="submit">${state.loading ? 'Conectando...' : 'Salvar e conectar'}</button>
+            <button type="button" data-action="refresh" ${state.loading ? 'disabled' : ''}>Atualizar</button>
           </div>
         </form>
         <p class="hint">Use o endereço completo com <code>/v1</code>. Em GitHub Pages, o servidor precisa aceitar HTTPS ou um proxy seguro.</p>
@@ -340,7 +349,6 @@ function render(scrollTop = true) {
           <div><strong>Soundboards</strong><span>${state.soundboards.length}</span></div>
           <div><strong>Cenas</strong><span>${state.scenes.length}</span></div>
         </div>
-        ${state.error ? `<p class="error">${escapeHtml(state.error)}</p>` : ''}
         ${state.toast ? `<p class="toast">${escapeHtml(state.toast)}</p>` : ''}
       </section>
 
@@ -532,7 +540,7 @@ function renderScenes() {
   `;
 }
 
-async function connect() {
+async function connect(options: { silent?: boolean } = {}) {
   state.loading = true;
   state.error = '';
   render(false);
@@ -551,10 +559,12 @@ async function connect() {
     state.playlistPlayback = playback;
     state.soundboardPlayback = soundPlayback;
     state.connected = true;
-    state.toast = 'Dados atualizados.';
+    state.error = '';
+    if (!options.silent) setToast('Conectado ao Kenku.');
   } catch (error) {
     state.connected = false;
     state.error = error instanceof Error ? error.message : 'Falha ao conectar.';
+    if (!options.silent) setToast('Não foi possível conectar.');
   } finally {
     state.loading = false;
     render(false);
@@ -563,50 +573,50 @@ async function connect() {
 
 async function playlistPlay(id: string) {
   await apiRequest('/playlist/play', { method: 'PUT', body: JSON.stringify({ id }) });
-  state.toast = 'Playlist reproduzida.';
-  await connect();
+  setToast('Playlist reproduzida.');
+  await connect({ silent: true });
 }
 
 async function playlistPause() {
   await apiRequest('/playlist/playback/pause', { method: 'PUT' });
-  state.toast = 'Pause enviado.';
-  await connect();
+  setToast('Pause enviado.');
+  await connect({ silent: true });
 }
 
 async function playlistNext() {
   await apiRequest('/playlist/playback/next', { method: 'POST' });
-  state.toast = 'Próxima faixa.';
-  await connect();
+  setToast('Próxima faixa.');
+  await connect({ silent: true });
 }
 
 async function playlistPrevious() {
   await apiRequest('/playlist/playback/previous', { method: 'POST' });
-  state.toast = 'Faixa anterior.';
-  await connect();
+  setToast('Faixa anterior.');
+  await connect({ silent: true });
 }
 
 async function playlistMuteToggle() {
   const muted = !(state.playlistPlayback?.muted ?? false);
   await apiRequest('/playlist/playback/mute', { method: 'PUT', body: JSON.stringify({ mute: muted }) });
-  state.toast = muted ? 'Playlist mutada.' : 'Playlist desmutada.';
-  await connect();
+  setToast(muted ? 'Playlist mutada.' : 'Playlist desmutada.');
+  await connect({ silent: true });
 }
 
 async function playlistSetVolume(volume: number) {
   await apiRequest('/playlist/playback/volume', { method: 'PUT', body: JSON.stringify({ volume }) });
-  await connect();
+  await connect({ silent: true });
 }
 
 async function soundboardPlay(id: string) {
   await apiRequest('/soundboard/play', { method: 'PUT', body: JSON.stringify({ id }) });
-  state.toast = 'Sons reproduzidos.';
-  await connect();
+  setToast('Sons reproduzidos.');
+  await connect({ silent: true });
 }
 
 async function soundboardStop(id: string) {
   await apiRequest('/soundboard/stop', { method: 'PUT', body: JSON.stringify({ id }) });
-  state.toast = 'Sons parados.';
-  await connect();
+  setToast('Sons parados.');
+  await connect({ silent: true });
 }
 
 async function runScene(sceneId: string) {
@@ -624,14 +634,14 @@ async function runScene(sceneId: string) {
     await apiRequest('/soundboard/play', { method: 'PUT', body: JSON.stringify({ id: soundId }) });
   }
 
-  state.toast = `Cena “${scene.name}” ativada.`;
-  await connect();
+  setToast(`Cena “${scene.name}” ativada.`);
+  await connect({ silent: true });
 }
 
 function deleteScene(sceneId: string) {
   state.scenes = state.scenes.filter((scene) => scene.id !== sceneId);
   persistScenes();
-  state.toast = 'Cena removida.';
+  setToast('Cena removida.');
   render();
 }
 
@@ -645,24 +655,57 @@ async function apiRequest(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   if (init.body) headers.set('Content-Type', 'application/json');
 
-  const response = await fetch(url, {
-    ...init,
-    headers,
-  });
+  try {
+    const response = await fetch(url, {
+      ...init,
+      headers,
+    });
 
-  if (!response.ok) {
-    throw new Error(`HTTP ${response.status} em ${path}`);
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status} em ${path}`);
+    }
+
+    const type = response.headers.get('content-type') ?? '';
+    if (type.includes('application/json')) return response.json();
+    return undefined;
+  } catch (error) {
+    throw new Error(describeRequestError(error, url));
   }
-
-  const type = response.headers.get('content-type') ?? '';
-  if (type.includes('application/json')) return response.json();
-  return undefined;
 }
 
 function normalizeServerUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return '';
   return trimmed.replace(/\/$/, '').replace(/\/?v1$/, '/v1');
+}
+
+function describeRequestError(error: unknown, url: string) {
+  const http = new URL(url).protocol === 'http:';
+  const pageHttps = location.protocol === 'https:';
+
+  if (pageHttps && http) {
+    return 'Bloqueado por mixed content. Use HTTPS ou um proxy seguro.';
+  }
+
+  if (error instanceof Error && /failed to fetch|networkerror|load failed|fetch/i.test(error.message)) {
+    return 'Servidor inacessível ou bloqueado por CORS.';
+  }
+
+  if (error instanceof Error) return error.message;
+  return 'Falha de rede ao acessar o Kenku.';
+}
+
+function setToast(message: string) {
+  state.toast = message;
+  if (toastTimer) window.clearTimeout(toastTimer);
+  if (!message) {
+    render(false);
+    return;
+  }
+  toastTimer = window.setTimeout(() => {
+    state.toast = '';
+    render(false);
+  }, 2500);
 }
 
 function clampNumber(value: number, min: number, max: number) {
