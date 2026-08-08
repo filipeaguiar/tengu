@@ -27,6 +27,14 @@ Em outro terminal:
 /home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg 8787
 ```
 
+### Como serviço de usuário
+O unit file fica em `systemd/user/kenku-proxy.service` e pode ser instalado em:
+```bash
+cp systemd/user/kenku-proxy.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now kenku-proxy.service
+```
+
 ### 3) Use no Tengu
 ```text
 https://steamdeck.taile7381b.ts.net/v1
