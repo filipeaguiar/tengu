@@ -30,9 +30,9 @@ Em outro terminal:
 ### Como serviço de usuário
 Os unit files ficam em `systemd/user/` e podem ser instalados em:
 ```bash
-cp systemd/user/*.service ~/.config/systemd/user/
+cp systemd/user/* ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now tailscaled.service kenku-proxy.service tailscale-serve.service
+systemctl --user enable --now tengu.target
 ```
 
 ### 3) Use no Tengu
