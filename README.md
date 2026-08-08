@@ -13,12 +13,26 @@ Configurado para publicar em `https://filipeaguiar.github.io/tengu/`.
 - instalável no Android
 - deploy automático no GitHub Pages via Actions
 
-## Limitação importante
-O GitHub Pages roda em **HTTPS**. Se o Kenku Remote estiver em **HTTP** na rede local, o navegador pode bloquear as chamadas por mixed content/CORS.
+## HTTPS com Tailscale
+A forma mais simples aqui é expor o Kenku por HTTPS via **Tailscale Serve** usando um pequeno proxy local que adiciona CORS.
 
-Para funcionar bem, use:
-- um endereço HTTPS para o Kenku Remote, ou
-- um proxy/reverse proxy seguro apontando para o Kenku.
+### 1) Suba o proxy local
+```bash
+npm run proxy:kenku
+```
+
+### 2) Exponha via Tailscale
+Em outro terminal:
+```bash
+/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg 8787
+```
+
+### 3) Use no Tengu
+```text
+https://steamdeck.taile7381b.ts.net/v1
+```
+
+Se quiser trocar o origin permitido, use `ALLOW_ORIGIN` no proxy.
 
 ## Desenvolvimento
 ```bash
