@@ -1,0 +1,20 @@
+[Unit]
+Description=Tailscale (user)
+After=network.target
+
+[Service]
+ExecStart=%h/.local/bin/tailscaled \
+  --tun=userspace-networking \
+  --state=%h/.tailscale/tailscaled.state \
+  --socket=%h/.tailscale/tailscaled.sock \
+  --socks5-server=localhost:1055
+
+Restart=always
+RestartSec=5
+
+# Segurança básica
+NoNewPrivileges=yes
+PrivateTmp=yes
+
+[Install]
+WantedBy=default.target

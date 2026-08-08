@@ -32,7 +32,7 @@ Os unit files ficam em `systemd/user/` e podem ser instalados em:
 ```bash
 cp systemd/user/*.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now kenku-proxy.service tailscale-serve.service
+systemctl --user enable --now tailscaled.service kenku-proxy.service tailscale-serve.service
 ```
 
 ### 3) Use no Tengu
