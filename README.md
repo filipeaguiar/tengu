@@ -28,11 +28,11 @@ Em outro terminal:
 ```
 
 ### Como serviço de usuário
-O unit file fica em `systemd/user/kenku-proxy.service` e pode ser instalado em:
+Os unit files ficam em `systemd/user/` e podem ser instalados em:
 ```bash
-cp systemd/user/kenku-proxy.service ~/.config/systemd/user/
+cp systemd/user/*.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now kenku-proxy.service
+systemctl --user enable --now kenku-proxy.service tailscale-serve.service
 ```
 
 ### 3) Use no Tengu
