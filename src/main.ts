@@ -69,8 +69,12 @@ if (!app) throw new Error('App root not found');
 let toastTimer: number | undefined;
 let playbackTimer: number | undefined;
 
-setup();
-render();
+try {
+  setup();
+  render();
+} catch (error) {
+  renderFatalError(error);
+}
 
 function setup() {
   app.addEventListener('click', onClick);
@@ -548,7 +552,26 @@ function statusLabel(status: string) {
 }
 
 function escapeHtml(value: string) {
-  return value.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;').replaceAll("'", '&#39;');
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function renderFatalError(error: unknown) {
+  const message = error instanceof Error ? error.message : 'Erro desconhecido';
+  app.innerHTML = `
+    <main class="fatal-screen">
+      <div>
+        <span class="connection-dot disconnected"></span>
+        <h1>Não foi possível abrir o Tengu</h1>
+        <p>${escapeHtml(message)}</p>
+        <button class="primary-button" type="button" onclick="location.reload()">Tentar novamente</button>
+      </div>
+    </main>
+  `;
 }
 
 const svg = (body: string) => `<svg viewBox="0 0 24 24" aria-hidden="true">${body}</svg>`;
