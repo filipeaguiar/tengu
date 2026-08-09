@@ -5,7 +5,8 @@ After=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/home/deck/Documents/Projetos/tengu
-Environment=PORT=8787
+Environment=PROXY_HTTPS=1
+Environment=PORT=8788
 Environment=KENKU_TARGET=http://127.0.0.1:3333
 Environment=ALLOW_ORIGIN=https://filipeaguiar.github.io
 ExecStart=/home/deck/.nvm/versions/node/v25.8.2/bin/node /home/deck/Documents/Projetos/tengu/scripts/kenku-proxy.mjs

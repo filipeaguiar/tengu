@@ -1,12 +1,26 @@
+import fs from 'node:fs';
 import http from 'node:http';
+import https from 'node:https';
+import os from 'node:os';
+import path from 'node:path';
+import { execFileSync } from 'node:child_process';
 import { request as httpRequest } from 'node:http';
+import { request as httpsRequest } from 'node:https';
 import { URL } from 'node:url';
 
-const PORT = Number.parseInt(process.env.PORT ?? '8787', 10);
-const TARGET = process.env.KENKU_TARGET ?? 'http://127.0.0.1:3333';
+const SOCKET = process.env.TS_SOCKET ?? '/home/deck/.tailscale/tailscaled.sock';
+const KENKU_TARGET = process.env.KENKU_TARGET ?? 'http://127.0.0.1:3333';
 const ALLOW_ORIGIN = process.env.ALLOW_ORIGIN ?? 'https://filipeaguiar.github.io';
+const PORT = Number.parseInt(process.env.PORT ?? (process.env.PROXY_HTTPS ? '8788' : '8787'), 10);
+const ENABLE_HTTPS = truthy(process.env.PROXY_HTTPS);
+const CERT_DIR = process.env.CERT_DIR ?? path.join(os.homedir(), '.local/share/tailscale/certs');
 
-const server = http.createServer((req, res) => {
+fs.mkdirSync(CERT_DIR, { recursive: true });
+
+const hostname = ENABLE_HTTPS ? await resolveHostname() : '';
+const certPaths = ENABLE_HTTPS ? await ensureCertificate(hostname) : null;
+
+const handler = (req, res) => {
   const origin = req.headers.origin ?? '';
   const allowed = origin === ALLOW_ORIGIN ? origin : ALLOW_ORIGIN;
 
@@ -23,12 +37,14 @@ const server = http.createServer((req, res) => {
     return;
   }
 
-  const upstream = new URL(req.url, TARGET);
-  const proxy = httpRequest(
+  const upstream = new URL(req.url, KENKU_TARGET);
+  const proxyRequest = upstream.protocol === 'https:' ? httpsRequest : httpRequest;
+  const proxy = proxyRequest(
     upstream,
     {
       method: req.method,
       headers: sanitizeHeaders(req.headers),
+      rejectUnauthorized: false,
     },
     (upstreamRes) => {
       setCors(res, allowed);
@@ -45,13 +61,55 @@ const server = http.createServer((req, res) => {
   });
 
   req.pipe(proxy);
-});
+};
+
+const server = ENABLE_HTTPS
+  ? https.createServer(
+      {
+        cert: fs.readFileSync(certPaths.certPath),
+        key: fs.readFileSync(certPaths.keyPath),
+      },
+      handler,
+    )
+  : http.createServer(handler);
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`Kenku proxy listening on http://127.0.0.1:${PORT}`);
-  console.log(`Upstream: ${TARGET}`);
+  const proto = ENABLE_HTTPS ? 'https' : 'http';
+  console.log(`Kenku proxy listening on ${proto}://127.0.0.1:${PORT}`);
+  console.log(`Upstream: ${KENKU_TARGET}`);
   console.log(`Allowed origin: ${ALLOW_ORIGIN}`);
+  if (ENABLE_HTTPS) console.log(`TLS host: ${hostname}`);
 });
+
+async function resolveHostname() {
+  const json = execFileSync('/home/deck/.local/bin/tailscale', ['--socket', SOCKET, 'status', '--json'], {
+    encoding: 'utf8',
+  });
+  const status = JSON.parse(json);
+  const dnsName = status?.Self?.DNSName || status?.DNSName;
+  if (!dnsName) throw new Error('Could not determine Tailscale DNS name.');
+  return String(dnsName).replace(/\.$/, '');
+}
+
+async function ensureCertificate(dnsName) {
+  const safe = dnsName.replace(/[^A-Za-z0-9.-]/g, '_');
+  const certPath = path.join(CERT_DIR, `${safe}.crt`);
+  const keyPath = path.join(CERT_DIR, `${safe}.key`);
+
+  if (!fs.existsSync(certPath) || !fs.existsSync(keyPath)) {
+    execFileSync(
+      '/home/deck/.local/bin/tailscale',
+      ['--socket', SOCKET, 'cert', '--cert-file', certPath, '--key-file', keyPath, dnsName],
+      { stdio: 'inherit' },
+    );
+  }
+
+  return { certPath, keyPath };
+}
+
+function truthy(value) {
+  return value === '1' || value === 'true' || value === 'yes';
+}
 
 function setCors(res, origin) {
   res.setHeader('Access-Control-Allow-Origin', origin);
@@ -67,6 +125,7 @@ function sanitizeHeaders(headers) {
   delete result.origin;
   delete result.referer;
   delete result['content-length'];
+  delete result['accept-encoding'];
   return result;
 }
 

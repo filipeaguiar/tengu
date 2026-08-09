@@ -14,7 +14,7 @@ Configurado para publicar em `https://filipeaguiar.github.io/tengu/`.
 - deploy automático no GitHub Pages via Actions
 
 ## HTTPS com Tailscale
-A forma mais simples aqui é expor o Kenku por HTTPS via **Tailscale Serve** usando um pequeno proxy local que adiciona CORS.
+O proxy local agora sobe em **HTTPS** e o Tailscale Serve aponta para ele.
 
 ### 1) Suba o proxy local
 ```bash
@@ -24,7 +24,7 @@ npm run proxy:kenku
 ### 2) Exponha via Tailscale
 Em outro terminal:
 ```bash
-/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock funnel --bg 8787
+/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg https+insecure://127.0.0.1:8788
 ```
 
 ### Como serviço de usuário
@@ -37,7 +37,7 @@ systemctl --user enable --now tengu.target
 
 ### 3) Use no Tengu
 ```text
-https://steamdeck.taile7381b.ts.net/v1
+https://steamdeck-1.taile7381b.ts.net/v1
 ```
 
 Se quiser trocar o origin permitido, use `ALLOW_ORIGIN` no proxy.

@@ -5,7 +5,8 @@ After=network.target
 [Service]
 ExecStart=%h/.local/bin/tailscaled \
   --tun=userspace-networking \
-  --state=%h/.tailscale/tailscaled.state \
+  --statedir=%h/.local/share/tailscale \
+  --state=%h/.local/share/tailscale/tailscaled.state \
   --socket=%h/.tailscale/tailscaled.sock \
   --socks5-server=localhost:1055
 

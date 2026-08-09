@@ -7,7 +7,7 @@ Requires=kenku-proxy.service
 Type=oneshot
 RemainAfterExit=yes
 ExecStartPre=/bin/sleep 3
-ExecStart=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg 8787
+ExecStart=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg https+insecure://127.0.0.1:8788
 ExecStop=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve reset
 
 [Install]
