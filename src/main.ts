@@ -55,6 +55,12 @@ type Scene = {
   note: string;
 };
 
+type EndpointStatus = {
+  state: 'idle' | 'checking' | 'ok' | 'error';
+  message: string;
+  checkedAt: string;
+};
+
 type AppState = {
   serverUrl: string;
   connected: boolean;
@@ -88,6 +94,7 @@ const state: AppState = {
   connected: false,
   loading: false,
   error: '',
+  endpointStatus: { state: 'idle', message: 'Aguardando teste', checkedAt: '' },
   playlists: [],
   tracksById: {},
   soundboards: [],
@@ -164,6 +171,9 @@ function onClick(event: MouseEvent) {
     case 'refresh':
       void connect();
       break;
+    case 'check-endpoint':
+      void checkEndpoint();
+      break;
     case 'playlist-play':
       if (id) runAction(playlistPlay(id));
       break;
@@ -223,6 +233,7 @@ function onSubmit(event: SubmitEvent) {
       state.serverUrl = normalized;
       localStorage.setItem(STORAGE_SERVER, normalized);
       void connect();
+      void checkEndpoint();
       break;
     }
     case 'scene': {
@@ -328,6 +339,17 @@ function render(scrollTop = true) {
           ${state.error ? `<p class="status-message error">${escapeHtml(state.error)}</p>` : state.connected ? `<p class="status-message ok">Conectado ao Kenku.</p>` : ''}
         </div>
       </header>
+
+      <section class="card">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Diagnóstico</p>
+            <h2>Status do endpoint</h2>
+          </div>
+          <button type="button" data-action="check-endpoint" ${state.loading ? 'disabled' : ''}>Testar</button>
+        </div>
+        ${renderEndpointStatus()}
+      </section>
 
       <section class="card">
         <form data-form="server" class="server-form">
@@ -543,6 +565,7 @@ function renderScenes() {
 async function connect(options: { silent?: boolean } = {}) {
   state.loading = true;
   state.error = '';
+  state.endpointStatus = { state: 'checking', message: 'Testando endpoint...', checkedAt: new Date().toISOString() };
   render(false);
   try {
     const [playlist, soundboard, playback, soundPlayback] = await Promise.all([
@@ -560,9 +583,15 @@ async function connect(options: { silent?: boolean } = {}) {
     state.soundboardPlayback = soundPlayback;
     state.connected = true;
     state.error = '';
+    state.endpointStatus = { state: 'ok', message: 'Endpoint acessível', checkedAt: new Date().toISOString() };
     if (!options.silent) setToast('Conectado ao Kenku.');
   } catch (error) {
     state.connected = false;
+    state.endpointStatus = {
+      state: 'error',
+      message: error instanceof Error ? describeRequestError(error, state.serverUrl) : 'Falha ao conectar.',
+      checkedAt: new Date().toISOString(),
+    };
     state.error = error instanceof Error ? `Falha na conexão: ${error.message}` : 'Falha ao conectar.';
     if (!options.silent) setToast('Não foi possível conectar.');
   } finally {
@@ -650,6 +679,23 @@ async function apiGet<T>(path: string): Promise<T> {
   return response as T;
 }
 
+async function checkEndpoint() {
+  state.endpointStatus = { state: 'checking', message: 'Testando endpoint...', checkedAt: new Date().toISOString() };
+  render(false);
+  try {
+    await apiGet<PlaylistPlayback>('/playlist/playback');
+    state.endpointStatus = { state: 'ok', message: 'Endpoint acessível', checkedAt: new Date().toISOString() };
+  } catch (error) {
+    state.endpointStatus = {
+      state: 'error',
+      message: error instanceof Error ? describeRequestError(error, state.serverUrl) : 'Falha ao conectar.',
+      checkedAt: new Date().toISOString(),
+    };
+  } finally {
+    render(false);
+  }
+}
+
 async function apiRequest(path: string, init: RequestInit = {}) {
   const url = `${state.serverUrl.replace(/\/$/, '')}${path}`;
   const headers = new Headers(init.headers);
@@ -677,6 +723,20 @@ function normalizeServerUrl(value: string) {
   const trimmed = value.trim();
   if (!trimmed) return '';
   return trimmed.replace(/\/$/, '').replace(/\/?v1$/, '/v1');
+}
+
+function renderEndpointStatus() {
+  const status = state.endpointStatus;
+  const label = status.state === 'checking' ? 'Testando...' : status.state === 'ok' ? 'Acessível' : status.state === 'error' ? 'Erro' : 'Sem teste';
+  return `
+    <div class="endpoint-status ${status.state}">
+      <div>
+        <strong>${label}</strong>
+        <p>${escapeHtml(status.message)}</p>
+      </div>
+      <small>${status.checkedAt ? new Date(status.checkedAt).toLocaleTimeString('pt-BR') : '—'}</small>
+    </div>
+  `;
 }
 
 function describeRequestError(error: unknown, url: string) {

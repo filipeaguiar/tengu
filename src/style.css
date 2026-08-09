@@ -191,6 +191,39 @@ h2 {
   color: #fca5a5;
 }
 
+.endpoint-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(30, 41, 59, 0.75);
+  border: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.endpoint-status strong {
+  display: block;
+}
+
+.endpoint-status p {
+  color: #94a3b8;
+  margin-top: 2px;
+}
+
+.endpoint-status.ok {
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.endpoint-status.error {
+  border-color: rgba(248, 113, 113, 0.35);
+}
+
+.endpoint-status.checking {
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
 .card {
   background: rgba(15, 23, 42, 0.85);
   border: 1px solid rgba(148, 163, 184, 0.16);
