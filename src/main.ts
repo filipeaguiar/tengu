@@ -69,13 +69,6 @@ if (!app) throw new Error('App root not found');
 let toastTimer: number | undefined;
 let playbackTimer: number | undefined;
 
-try {
-  setup();
-  render();
-} catch (error) {
-  renderFatalError(error);
-}
-
 function setup() {
   app.addEventListener('click', onClick);
   app.addEventListener('submit', onSubmit);
@@ -585,3 +578,10 @@ function iconWave() { return svg('<path d="M4 12v2M8 8v8M12 5v14M16 8v8M20 11v2"
 function iconGrid() { return svg('<rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><path d="M17.5 14v7M14 17.5h7"/>'); }
 function iconVolume() { return svg('<path d="M11 5 6 9H3v6h3l5 4V5Z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18 6a8.5 8.5 0 0 1 0 12"/>'); }
 function iconMuted() { return svg('<path d="M11 5 6 9H3v6h3l5 4V5ZM16 10l5 5M21 10l-5 5"/>'); }
+
+try {
+  setup();
+  render();
+} catch (error) {
+  renderFatalError(error);
+}
