@@ -6,6 +6,7 @@ Requires=kenku-proxy.service
 [Service]
 Type=oneshot
 RemainAfterExit=yes
+ExecStartPre=/bin/sleep 3
 ExecStart=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg 8787
 ExecStop=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve reset
 
