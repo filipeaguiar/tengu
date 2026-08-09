@@ -37,7 +37,7 @@ systemctl --user enable --now tengu.target
 
 ### 3) Use no Tengu
 ```text
-https://steamdeck-1.taile7381b.ts.net/v1
+https://steamdeck.taile7381b.ts.net/v1
 ```
 
 Se quiser trocar o origin permitido, use `ALLOW_ORIGIN` no proxy.

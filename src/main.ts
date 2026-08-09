@@ -43,10 +43,13 @@ type State = {
 
 const STORAGE_SERVER = 'tengu.serverUrl';
 const STORAGE_CARDS = 'tengu.sceneCards';
-const DEFAULT_SERVER = 'https://steamdeck-1.taile7381b.ts.net/v1';
+const DEFAULT_SERVER = 'https://steamdeck.taile7381b.ts.net/v1';
+const savedServer = localStorage.getItem(STORAGE_SERVER);
+const initialServer = (savedServer ?? DEFAULT_SERVER).replace('steamdeck-1.taile7381b.ts.net', 'steamdeck.taile7381b.ts.net');
+if (savedServer && savedServer !== initialServer) localStorage.setItem(STORAGE_SERVER, initialServer);
 
 const state: State = {
-  serverUrl: localStorage.getItem(STORAGE_SERVER) ?? DEFAULT_SERVER,
+  serverUrl: initialServer,
   connected: false,
   connecting: false,
   error: '',
