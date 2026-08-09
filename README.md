@@ -56,3 +56,6 @@ npm run build
 
 ## Deploy
 O workflow está em `.github/workflows/deploy.yml`.
+
+## Agentes
+Consulte [AGENTS.md](./AGENTS.md) para informações sobre a configuração e uso dos agentes Antigravity neste projeto.
