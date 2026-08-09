@@ -1,7 +1,7 @@
 [Unit]
 Description=Tengu stack
-Wants=tailscaled.service kenku-proxy.service tailscale-serve.service
-After=network-online.target tailscaled.service kenku-proxy.service tailscale-serve.service
+Wants=tailscaled.service kenku-proxy.service tailscale-funnel.service
+After=network-online.target tailscaled.service kenku-proxy.service tailscale-funnel.service
 
 [Install]
 WantedBy=default.target

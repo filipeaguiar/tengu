@@ -1,0 +1,13 @@
+[Unit]
+Description=Tailscale Funnel for Tengu
+After=network-online.target kenku-proxy.service tailscaled.service
+Requires=kenku-proxy.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock funnel --bg 8787
+ExecStop=/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock funnel reset
+
+[Install]
+WantedBy=default.target

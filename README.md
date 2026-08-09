@@ -24,7 +24,7 @@ npm run proxy:kenku
 ### 2) Exponha via Tailscale
 Em outro terminal:
 ```bash
-/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock serve --bg 8787
+/home/deck/.local/bin/tailscale --socket=/home/deck/.tailscale/tailscaled.sock funnel --bg 8787
 ```
 
 ### Como serviço de usuário
