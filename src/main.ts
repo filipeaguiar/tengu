@@ -107,9 +107,7 @@ function onClick(event: MouseEvent) {
       disconnect();
       break;
     case 'open-picker':
-      state.pickerOpen = true;
-      state.volumeOpen = false;
-      render(false);
+      runAction(openPicker());
       break;
     case 'close-picker':
       state.pickerOpen = false;
@@ -238,7 +236,7 @@ async function refreshPlayback() {
     ]);
     state.playlistPlayback = playlistPlayback;
     state.soundboardPlayback = soundboardPlayback;
-    render(false);
+    if (!state.pickerOpen && !state.volumeOpen) render(false);
   } catch {
     state.connected = false;
     state.view = 'connection';
@@ -246,6 +244,22 @@ async function refreshPlayback() {
     stopPlaybackPolling();
     render(false);
   }
+}
+
+async function openPicker() {
+  state.volumeOpen = false;
+
+  const [playlistData, soundboardData] = await Promise.all([
+    apiGet<{ playlists: Playlist[]; tracks: Track[] }>('/playlist'),
+    apiGet<{ soundboards: Soundboard[]; sounds: Sound[] }>('/soundboard'),
+  ]);
+
+  state.playlists = playlistData.playlists ?? [];
+  state.tracks = playlistData.tracks ?? [];
+  state.soundboards = soundboardData.soundboards ?? [];
+  state.sounds = soundboardData.sounds ?? [];
+  state.pickerOpen = true;
+  render(false);
 }
 
 async function toggleTrack(id: string) {
@@ -426,7 +440,7 @@ function renderPicker() {
       <h3>Músicas</h3>
       <div class="picker-list">${tracks || '<p class="muted">Nenhuma música encontrada.</p>'}</div>
       <h3>Sons</h3>
-      <div class="picker-list">${sounds || '<p class="muted">Nenhum som encontrado.</p>'}</div>
+      <div class="picker-list">${sounds || '<p class="muted">O Kenku não retornou nenhum som pela API.</p>'}</div>
     </section>
   `;
 }
