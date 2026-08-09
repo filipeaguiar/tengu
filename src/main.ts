@@ -563,7 +563,7 @@ async function connect(options: { silent?: boolean } = {}) {
     if (!options.silent) setToast('Conectado ao Kenku.');
   } catch (error) {
     state.connected = false;
-    state.error = error instanceof Error ? error.message : 'Falha ao conectar.';
+    state.error = error instanceof Error ? `Falha na conexão: ${error.message}` : 'Falha ao conectar.';
     if (!options.silent) setToast('Não foi possível conectar.');
   } finally {
     state.loading = false;
@@ -687,11 +687,14 @@ function describeRequestError(error: unknown, url: string) {
     return 'Bloqueado por mixed content. Use HTTPS ou um proxy seguro.';
   }
 
-  if (error instanceof Error && /failed to fetch|networkerror|load failed|fetch/i.test(error.message)) {
-    return 'Servidor inacessível ou bloqueado por CORS.';
+  if (error instanceof Error) {
+    const msg = error.message;
+    if (/failed to fetch|networkerror|load failed|fetch/i.test(msg)) {
+      return 'Servidor inacessível, SSL inválido ou bloqueado por CORS.';
+    }
+    return msg;
   }
 
-  if (error instanceof Error) return error.message;
   return 'Falha de rede ao acessar o Kenku.';
 }
 
